@@ -2,6 +2,7 @@
       # System profile packages
       environment.systemPackages = with pkgs;
       [
+        cachix
         mpv
       ];
 
@@ -24,6 +25,9 @@
 
       # The platform the configuration will be used on.
       nixpkgs.hostPlatform = "aarch64-darwin";
+
+      # enable touch ID for sudo
+      security.pam.enableSudoTouchIdAuth = true;
       users.users.kit = {
         name = "kit";
         home = "/Users/kit";
