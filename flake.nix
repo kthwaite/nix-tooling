@@ -1,59 +1,35 @@
-# originally derived from https://sandstorm.de/de/blog/post/my-first-steps-with-nix-on-mac-osx-as-homebrew-replacement.html
 {
-    inputs = {
-        nixpkgs.url = "github:NixOS/nixpkgs";
-        neovim-flake = {
-            url = "github:neovim/neovim?dir=contrib";
-            inputs.nixpkgs.follows = "nixpkgs";
-        };
+  description = "prospering system flake";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin = {
+        url = "github:LnL7/nix-darwin";
+        inputs.nixpkgs.follows = "nixpkgs";
+    };
+    home-manager = {
+        url = "github:nix-community/home-manager";
+        inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, ... }:
+  {
+    # Build darwin flake using:
+    # $ darwin-rebuild build --flake .#prospering
+    darwinConfigurations."prospering" = nix-darwin.lib.darwinSystem {
+      modules = [
+        ./configuration.nix
+        home-manager.darwinModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.kit = import ./home.nix;
+          }
+      ];
     };
 
-    outputs = { self, nixpkgs, neovim-flake }: {
-        packages."aarch64-darwin".default = let
-            pkgs = nixpkgs.legacyPackages."aarch64-darwin";
-        in pkgs.buildEnv {
-            name = "home-packages";
-            paths = with pkgs; [
-                # 00 cli tools
-                curl
-                fastfetch
-                ffmpeg
-                fzf
-                git
-                gnupg
-                jq
-                lnav
-                tmux
-                trivy
-
-                # web
-                httpie
-                caddy
-
-                # package management
-                pipx
-                yarn
-
-                # storage
-                duckdb
-                sqlite
-
-                # languages
-                tree-sitter
-                racket
-                zig
-
-                # containers
-                dive
-
-
-                # media
-                mpv
-                yt-dlp
-
-                neovim-flake.packages.aarch64-darwin.neovim
-            ];
-        };
-    };
-
+    # Expose the package set, including overlays, for convenience.
+    darwinPackages = self.darwinConfigurations."prospering".pkgs;
+  };
 }
